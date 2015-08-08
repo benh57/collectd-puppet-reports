@@ -28,7 +28,7 @@ def safe_get(data, path, default):
     else:
       return default
   return res
-  
+
 def compute_metrics(data):
   h = {}
   h.update(compute_log_metrics(safe_get(data, ['logs'], [])))
@@ -61,28 +61,32 @@ def map_value(node):
 def read_callback():
   yaml.add_multi_constructor("!", identity)
   logger('verb', "starting run")
-  for report_dir in os.listdir(PuppetReportsConfig.reports_dir):
-    logger('verb', "parsing: %s" % report_dir)
-    reports_dir = os.listdir(PuppetReportsConfig.reports_dir + '/' + report_dir)
-    reports_dir.sort
-    last_report = reports_dir[-1]
-    last_report_file = PuppetReportsConfig.reports_dir + '/' + report_dir + '/' + last_report
-    with open(last_report_file, "r") as stream:
-      data = yaml.load(stream)
-      data = map_value(data)
-      results = compute_metrics(data)
-      logger('verb', "ready to send")
-      for k in results:
-        logger('verb', ("pushing value for %s => %s = %s" % (report_dir, k, results[k])))
-        val = collectd.Values(plugin=NAME, type='gauge')
-        val.plugin_instance = report_dir
-        val.type_instance = k
-        try:
-          val.values = [ float(results[k]) ]
-        except:
-          logger('warn', ("value %s => %s for %s cannot be parsed to float" % (k, results[k], report_dir)))
-          val.values = [ 0.0 ]
-        val.dispatch()
+  if os.path.isfile(PuppetReportsConfig.reports_dir + '/last_run_summary.yaml'):
+      last_report_file = PuppetReportsConfig.reports_dir + '/last_run_summary.yaml'
+  else:
+    for report_dir in os.listdir(PuppetReportsConfig.reports_dir):
+      logger('verb', "parsing: %s" % report_dir)
+      reports_dir = os.listdir(PuppetReportsConfig.reports_dir + '/' + report_dir)
+      reports_dir.sort
+      last_report = reports_dir[-1]
+      last_report_file = PuppetReportsConfig.reports_dir + '/' + report_dir + '/' + last_report
+
+  with open(last_report_file, "r") as stream:
+    data = yaml.load(stream)
+    data = map_value(data)
+    results = compute_metrics(data)
+    logger('verb', "ready to send")
+    for k in results:
+      logger('verb', ("pushing value for %s => %s = %s" % (last_report_file, k, results[k])))
+      val = collectd.Values(plugin=NAME, type='gauge')
+      val.plugin_instance = last_report_file
+      val.type_instance = k
+      try:
+        val.values = [ float(results[k]) ]
+      except:
+        logger('warn', ("value %s => %s for %s cannot be parsed to float" % (k, results[k], last_report_file)))
+        val.values = [ 0.0 ]
+      val.dispatch()
 
 def configure_callback(conf):
   yaml.add_multi_constructor("!", identity)
@@ -95,7 +99,7 @@ def configure_callback(conf):
       PuppetReportsConfig.verbose = True
     else:
       logger('verb', "unknown config key in puppet module: %s" % node.key)
-    
+
 # logging function
 def logger(t, msg):
     if t == 'err':
