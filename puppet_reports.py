@@ -61,8 +61,8 @@ def map_value(node):
 def read_callback():
   yaml.add_multi_constructor("!", identity)
   logger('verb', "starting run")
-  if os.path.isfile(PuppetReportsConfig.reports_dir + '/last_run_summary.yaml'):
-      last_report_file = PuppetReportsConfig.reports_dir + '/last_run_summary.yaml'
+  if os.path.isfile(PuppetReportsConfig.reports_dir + '/last_run_report.yaml'):
+      last_report_file = PuppetReportsConfig.reports_dir + '/last_run_report.yaml'
   else:
     for report_dir in os.listdir(PuppetReportsConfig.reports_dir):
       logger('verb', "parsing: %s" % report_dir)
