@@ -9,6 +9,7 @@ NAME = 'puppet_reports'
 class PuppetReportsConfig:
   reports_dir = '/var/lib/puppet/reports'
   verbose = False
+  interval = 1800
 
 def compute_log_metrics(data):
   return {'log_info': len(filter(lambda x: safe_get(x, ['level'], '') == 'info', data)),
@@ -81,6 +82,7 @@ def read_callback():
       val = collectd.Values(plugin=NAME, type='gauge')
       val.plugin_instance = last_report_file
       val.type_instance = k
+      val.interval = PuppetReportsConfig.interval
       try:
         val.values = [ float(results[k]) ]
       except:
@@ -97,6 +99,8 @@ def configure_callback(conf):
       PuppetReportsConfig.reports_dir = node.values[0]
     elif node.key == 'Verbose':
       PuppetReportsConfig.verbose = True
+    elif node.key == 'Interval':
+      PuppetReportsConfig.interval = float(node.values[0])
     else:
       logger('verb', "unknown config key in puppet module: %s" % node.key)
 
@@ -113,4 +117,4 @@ def logger(t, msg):
         collectd.notice('%s: %s' % (NAME, msg))
 
 collectd.register_config(configure_callback)
-collectd.register_read(read_callback)
+collectd.register_read(read_callback, PuppetReportsConfig.interval)
