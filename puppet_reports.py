@@ -28,7 +28,7 @@ def tridict(prefix, data):
 def safe_get(data, path, default):
     res = data
     for el in path:
-        if res.has_key(el):
+        if el in res:
             res = res[el]
         else:
             return default
